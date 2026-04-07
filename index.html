@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cronogramas Clean It</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <div class="brand">
+          <div class="brand-mark">CI</div>
+          <div>
+            <h1>Cronogramas</h1>
+            <p>Plantilla operativa editable</p>
+          </div>
+          <button class="sidebar-close no-print" id="sidebarClose" aria-label="Cerrar menú">✕</button>
+        </div>
+
+        <div class="sidebar-block">
+          <button id="newServiceBtn" class="btn btn-primary btn-full">Nuevo servicio</button>
+          <button id="duplicateBtn" class="btn btn-secondary btn-full">Duplicar actual</button>
+        </div>
+
+        <div class="sidebar-block">
+          <label for="serviceSearch">Buscar servicio</label>
+          <input id="serviceSearch" type="text" placeholder="Ej. Jaramillo 3446" />
+        </div>
+
+        <div class="sidebar-block">
+          <div class="block-title">Servicios guardados</div>
+          <div id="serviceList" class="service-list"></div>
+        </div>
+
+        <!-- Estado de conexión -->
+        <div class="sidebar-block status-block">
+          <span id="statusDot" class="status-dot"></span>
+          <span id="statusText" class="status-text">Conectando...</span>
+        </div>
+
+        <div class="sidebar-block muted small">
+          Los datos se guardan en la nube y se sincronizan en tiempo real con todos los usuarios.
+        </div>
+      </div>
+    </aside>
+
+    <!-- Overlay para cerrar sidebar en mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <main class="main">
+      <div class="topbar no-print">
+        <div class="topbar-left">
+          <button class="btn btn-secondary sidebar-toggle" id="sidebarToggle" aria-label="Abrir menú">☰ Servicios</button>
+          <div>
+            <h2>Editor de cronogramas</h2>
+            <p>Mantené siempre la misma estructura y ajustá solo lo necesario.</p>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="addTaskBtn" class="btn btn-secondary">+ Tarea</button>
+          <button id="saveBtn" class="btn btn-primary">Guardar</button>
+          <button id="exportXlsxBtn" class="btn btn-green">Exportar Excel</button>
+          <button id="exportJsonBtn" class="btn btn-secondary">JSON</button>
+          <label class="btn btn-secondary file-label">
+            Importar
+            <input id="importJsonInput" type="file" accept=".json" hidden />
+          </label>
+          <button id="printBtn" class="btn btn-dark">Imprimir / PDF</button>
+        </div>
+      </div>
+
+      <section class="paper" id="printArea">
+        <div class="sheet-header">
+          <div class="sheet-title">CRONOGRAMA DE ACTIVIDADES – MAESTRANZA</div>
+          <div class="sheet-subtitle">Plantilla editable base para adaptar a cada servicio</div>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-item label">Servicio</div>
+          <div class="meta-item"><input id="serviceName" type="text" placeholder="Nombre del servicio" /></div>
+          <div class="meta-item label">Dirección</div>
+          <div class="meta-item"><input id="serviceAddress" type="text" placeholder="Dirección" /></div>
+          <div class="meta-item label">Operarios</div>
+          <div class="meta-item"><input id="serviceWorkers" type="text" placeholder="Cantidad" /></div>
+
+          <div class="meta-item label">Horario</div>
+          <div class="meta-item"><input id="serviceSchedule" type="text" placeholder="Ej. 06:00 a 14:00" /></div>
+          <div class="meta-item label">Supervisor</div>
+          <div class="meta-item"><input id="serviceSupervisor" type="text" placeholder="Nombre del supervisor" /></div>
+          <div class="meta-item label">Sectores críticos</div>
+          <div class="meta-item"><input id="serviceCritical" type="text" placeholder="Ej. Hall, baños, ascensores" /></div>
+        </div>
+
+        <!-- Tabla para desktop -->
+        <table class="schedule-table desktop-table">
+          <thead>
+            <tr>
+              <th class="task-col">TAREAS ASIGNADAS</th>
+              <th>L</th>
+              <th>M</th>
+              <th>M</th>
+              <th>J</th>
+              <th>V</th>
+              <th>S</th>
+              <th>D</th>
+              <th class="time-col">HORARIO</th>
+              <th class="responsible-col">RESPONSABLE</th>
+              <th class="no-print">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tasksBody"></tbody>
+        </table>
+
+        <!-- Tarjetas para mobile -->
+        <div class="mobile-tasks" id="mobileTasksBody"></div>
+
+        <div class="notes-block">
+          <div class="notes-title">OBSERVACIONES OPERATIVAS</div>
+          <textarea id="serviceNotes" rows="4" placeholder="Cargar observaciones generales, normas, stock, proveedores autorizados, etc."></textarea>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <template id="taskRowTemplate">
+    <tr>
+      <td class="task-input-cell">
+        <textarea class="task-text" rows="2" placeholder="Describir tarea"></textarea>
+      </td>
+      <td><input type="checkbox" class="day-check" data-day="l" /></td>
+      <td><input type="checkbox" class="day-check" data-day="ma" /></td>
+      <td><input type="checkbox" class="day-check" data-day="mi" /></td>
+      <td><input type="checkbox" class="day-check" data-day="j" /></td>
+      <td><input type="checkbox" class="day-check" data-day="v" /></td>
+      <td><input type="checkbox" class="day-check" data-day="s" /></td>
+      <td><input type="checkbox" class="day-check" data-day="d" /></td>
+      <td class="task-input-cell"><input type="text" class="task-time" placeholder="Ej. 07:00" /></td>
+      <td class="task-input-cell"><input type="text" class="task-responsible" placeholder="Nombre" /></td>
+      <td class="row-actions no-print">
+        <button class="icon-btn move-up" title="Subir">↑</button>
+        <button class="icon-btn move-down" title="Bajar">↓</button>
+        <button class="icon-btn delete-row" title="Eliminar">✕</button>
+      </td>
+    </tr>
+  </template>
+
+  <template id="mobileTaskCardTemplate">
+    <div class="mobile-task-card">
+      <div class="mobile-task-header">
+        <textarea class="task-text" rows="2" placeholder="Describir tarea"></textarea>
+        <div class="mobile-task-actions no-print">
+          <button class="icon-btn move-up" title="Subir">↑</button>
+          <button class="icon-btn move-down" title="Bajar">↓</button>
+          <button class="icon-btn delete-row" title="Eliminar">✕</button>
+        </div>
+      </div>
+      <div class="mobile-days-grid">
+        <label class="mobile-day"><input type="checkbox" class="day-check" data-day="l" /><span>L</span></label>
+        <label class="mobile-day"><input type="checkbox" class="day-check" data-day="ma" /><span>M</span></label>
+        <label class="mobile-day"><input type="checkbox" class="day-check" data-day="mi" /><span>M</span></label>
+        <label class="mobile-day"><input type="checkbox" class="day-check" data-day="j" /><span>J</span></label>
+        <label class="mobile-day"><input type="checkbox" class="day-check" data-day="v" /><span>V</span></label>
+        <label class="mobile-day"><input type="checkbox" class="day-check" data-day="s" /><span>S</span></label>
+        <label class="mobile-day"><input type="checkbox" class="day-check" data-day="d" /><span>D</span></label>
+      </div>
+      <div class="mobile-extra-fields">
+        <div class="mobile-extra-item">
+          <label class="mobile-extra-label">Horario</label>
+          <input type="text" class="task-time" placeholder="Ej. 07:00" />
+        </div>
+        <div class="mobile-extra-item">
+          <label class="mobile-extra-label">Responsable</label>
+          <input type="text" class="task-responsible" placeholder="Nombre" />
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- xlsx -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
