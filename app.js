@@ -1,14 +1,12 @@
 // ─────────────────────────────────────────────────────────────
 //  CONFIGURACIÓN SUPABASE
-//  Reemplazá estos valores con los de tu proyecto en supabase.com
 // ─────────────────────────────────────────────────────────────
-const SUPABASE_URL = 'https://dkwdqtjbrxljblsbnmeh.supabase.co';       // ej: https://xyzxyz.supabase.co
-const SUPABASE_ANON_KEY = 'sb_publishable_Nq9Op9CiFZKi_1nszDnMdQ_9Be4GTmI'; // clave "anon public"
+const SUPABASE_URL = 'https://dkwdqtjbrxljblsbnmeh.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Nq9Op9CiFZKi_1nszDnMdQ_9Be4GTmI';
 
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ─────────────────────────────────────────────────────────────
 const DEFAULT_TASKS = [
   { text: 'Vereda: barrer, espumar y enjuagar ingreso.', time: '', responsible: '', days: { l:true, ma:false, mi:true, j:false, v:true, s:false, d:false } },
   { text: 'Hall: vidrios, puertas, marcos, espejos, pisos y zócalos.', time: '', responsible: '', days: { l:true, ma:true, mi:true, j:true, v:true, s:true, d:false } },
@@ -27,7 +25,7 @@ let services = [];
 let currentId = null;
 let saveTimeout = null;
 let realtimeChannel = null;
-let isSavingFromRemote = false; // evita loop de realtime
+let isSavingFromRemote = false;
 
 const els = {
   serviceName: document.getElementById('serviceName'),
@@ -59,31 +57,22 @@ const els = {
   statusText: document.getElementById('statusText'),
 };
 
-// ─────────────────────────────────────────────────────────────
-//  ESTADO DE CONEXIÓN / GUARDADO
-// ─────────────────────────────────────────────────────────────
 function setStatus(type, text) {
-  // type: 'loading' | 'saved' | 'saving' | 'error' | 'realtime'
   const colors = {
     loading: '#f0a500',
-    saved:   '#1e7e3e',
-    saving:  '#2f5d8a',
-    error:   '#c0392b',
-    realtime:'#7db0e3',
+    saved: '#1e7e3e',
+    saving: '#2f5d8a',
+    error: '#c0392b',
+    realtime: '#7db0e3',
   };
-  if (els.statusDot) {
-    els.statusDot.style.background = colors[type] || '#657383';
-  }
-  if (els.statusText) {
-    els.statusText.textContent = text;
-  }
+
+  if (els.statusDot) els.statusDot.style.background = colors[type] || '#657383';
+  if (els.statusText) els.statusText.textContent = text;
 }
 
-// ─────────────────────────────────────────────────────────────
-//  SUPABASE: LEER
-// ─────────────────────────────────────────────────────────────
 async function loadFromSupabase() {
   setStatus('loading', 'Cargando...');
+
   const { data, error } = await db
     .from('services')
     .select('*')
@@ -95,8 +84,7 @@ async function loadFromSupabase() {
     return;
   }
 
-  // Supabase devuelve filas planas; el JSON de tareas viene en columna "data"
-  services = data.map(row => ({
+  services = (data || []).map(row => ({
     id: row.id,
     name: row.name,
     address: row.address,
@@ -121,23 +109,21 @@ async function loadFromSupabase() {
   startRealtime();
 }
 
-// ─────────────────────────────────────────────────────────────
-//  SUPABASE: GUARDAR (upsert de un servicio)
-// ─────────────────────────────────────────────────────────────
 async function saveToSupabase(service) {
   setStatus('saving', 'Guardando...');
+
   const { error } = await db
     .from('services')
     .upsert({
-      id:         service.id,
-      name:       service.name,
-      address:    service.address,
-      workers:    service.workers,
-      schedule:   service.schedule,
+      id: service.id,
+      name: service.name,
+      address: service.address,
+      workers: service.workers,
+      schedule: service.schedule,
       supervisor: service.supervisor,
-      critical:   service.critical,
-      notes:      service.notes,
-      tasks:      service.tasks,
+      critical: service.critical,
+      notes: service.notes,
+      tasks: service.tasks,
     }, { onConflict: 'id' });
 
   if (error) {
@@ -148,17 +134,11 @@ async function saveToSupabase(service) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-//  SUPABASE: ELIMINAR
-// ─────────────────────────────────────────────────────────────
 async function deleteFromSupabase(id) {
   const { error } = await db.from('services').delete().eq('id', id);
   if (error) console.error('Error eliminando:', error);
 }
 
-// ─────────────────────────────────────────────────────────────
-//  REALTIME: escuchar cambios de otros usuarios
-// ─────────────────────────────────────────────────────────────
 function startRealtime() {
   if (realtimeChannel) realtimeChannel.unsubscribe();
 
@@ -190,13 +170,14 @@ function handleRealtimeEvent(payload) {
       notes: newRow.notes,
       tasks: newRow.tasks || [],
     };
+
     const idx = services.findIndex(s => s.id === incoming.id);
     if (idx >= 0) {
       services[idx] = incoming;
     } else {
       services.push(incoming);
     }
-    // Si el servicio abierto fue editado por otro, recargarlo
+
     if (incoming.id === currentId) {
       openService(currentId);
       setStatus('realtime', 'Actualizado por otro usuario');
@@ -218,9 +199,6 @@ function handleRealtimeEvent(payload) {
   isSavingFromRemote = false;
 }
 
-// ─────────────────────────────────────────────────────────────
-//  INIT
-// ─────────────────────────────────────────────────────────────
 init();
 
 async function init() {
@@ -228,9 +206,6 @@ async function init() {
   await loadFromSupabase();
 }
 
-// ─────────────────────────────────────────────────────────────
-//  EVENTOS
-// ─────────────────────────────────────────────────────────────
 function bindEvents() {
   els.sidebarToggle.addEventListener('click', openSidebar);
   els.sidebarClose.addEventListener('click', closeSidebar);
@@ -271,7 +246,9 @@ function bindEvents() {
     if (service) await saveToSupabase(service);
   });
 
-  els.printBtn.addEventListener('click', () => window.print());
+  els.printBtn.addEventListener('click', handlePrint);
+  window.addEventListener('beforeprint', preparePrintLayout);
+
   els.exportXlsxBtn.addEventListener('click', exportXlsx);
   els.exportJsonBtn.addEventListener('click', exportJson);
   els.importJsonInput.addEventListener('change', importJson);
@@ -282,18 +259,78 @@ function bindEvents() {
   });
 }
 
+async function handlePrint() {
+  preparePrintLayout();
+  await waitForNextPaint();
+  window.print();
+}
+
+function preparePrintLayout() {
+  autosaveCurrent();
+
+  if (currentId) {
+    openService(currentId);
+  }
+
+  document.querySelectorAll('.task-text').forEach(autoResizeTextarea);
+  document.querySelectorAll('#tasksBody .task-text').forEach(updateTaskPrintMirror);
+  autoResizeTextarea(els.serviceNotes);
+}
+
+function waitForNextPaint() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+}
+
+function autoResizeTextarea(textarea) {
+  if (!textarea) return;
+  textarea.style.height = 'auto';
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
+function ensureTaskPrintMirror(textarea) {
+  if (!textarea) return null;
+  const cell = textarea.closest('.task-input-cell');
+  if (!cell) return null;
+
+  let mirror = cell.querySelector('.task-text-print');
+  if (!mirror) {
+    mirror = document.createElement('div');
+    mirror.className = 'task-text-print';
+    cell.appendChild(mirror);
+  }
+
+  return mirror;
+}
+
+function updateTaskPrintMirror(textarea) {
+  const mirror = ensureTaskPrintMirror(textarea);
+  if (!mirror) return;
+  mirror.textContent = textarea.value || '';
+}
+
+function bindTaskTextarea(textarea) {
+  if (!textarea) return;
+  autoResizeTextarea(textarea);
+  updateTaskPrintMirror(textarea);
+  textarea.addEventListener('input', () => {
+    autoResizeTextarea(textarea);
+    updateTaskPrintMirror(textarea);
+    debouncedSave();
+  });
+}
+
 function openSidebar() {
   els.sidebar.classList.add('open');
   els.sidebarOverlay.classList.add('open');
 }
+
 function closeSidebar() {
   els.sidebar.classList.remove('open');
   els.sidebarOverlay.classList.remove('open');
 }
 
-// ─────────────────────────────────────────────────────────────
-//  LÓGICA DE SERVICIOS
-// ─────────────────────────────────────────────────────────────
 function createBlankService() {
   return {
     id: crypto.randomUUID(),
@@ -327,6 +364,7 @@ function openService(id) {
 
   els.tasksBody.innerHTML = '';
   els.mobileTasksBody.innerHTML = '';
+
   (service.tasks || []).forEach(task => {
     addTaskRow(task);
     addMobileTaskCard(task);
@@ -335,12 +373,12 @@ function openService(id) {
   renderServiceList();
 }
 
-/* ── TABLA DESKTOP ──────────────────────────────────── */
 function addTaskRow(task) {
   const fragment = els.taskRowTemplate.content.cloneNode(true);
   const row = fragment.querySelector('tr');
+  const taskTextarea = row.querySelector('.task-text');
 
-  row.querySelector('.task-text').value = task.text || '';
+  taskTextarea.value = task.text || '';
   row.querySelector('.task-time').value = task.time || '';
   row.querySelector('.task-responsible').value = task.responsible || '';
 
@@ -349,7 +387,7 @@ function addTaskRow(task) {
     check.addEventListener('change', debouncedSave);
   });
 
-  row.querySelector('.task-text').addEventListener('input', debouncedSave);
+  bindTaskTextarea(taskTextarea);
   row.querySelector('.task-time').addEventListener('input', debouncedSave);
   row.querySelector('.task-responsible').addEventListener('input', debouncedSave);
 
@@ -375,30 +413,35 @@ function moveRow(row, direction) {
   const idx = rows.indexOf(row);
   const sibling = direction < 0 ? row.previousElementSibling : row.nextElementSibling;
   if (!sibling) return;
+
   if (direction < 0) {
     els.tasksBody.insertBefore(row, sibling);
   } else {
     els.tasksBody.insertBefore(sibling, row);
   }
+
   const cards = [...els.mobileTasksBody.querySelectorAll('.mobile-task-card')];
   const card = cards[idx];
   if (!card) return;
+
   const siblingCard = direction < 0 ? card.previousElementSibling : card.nextElementSibling;
   if (!siblingCard) return;
+
   if (direction < 0) {
     els.mobileTasksBody.insertBefore(card, siblingCard);
   } else {
     els.mobileTasksBody.insertBefore(siblingCard, card);
   }
+
   debouncedSave();
 }
 
-/* ── TARJETAS MOBILE ────────────────────────────────── */
 function addMobileTaskCard(task) {
   const fragment = els.mobileTaskCardTemplate.content.cloneNode(true);
   const card = fragment.querySelector('.mobile-task-card');
+  const taskTextarea = card.querySelector('.task-text');
 
-  card.querySelector('.task-text').value = task.text || '';
+  taskTextarea.value = task.text || '';
   card.querySelector('.task-time').value = task.time || '';
   card.querySelector('.task-responsible').value = task.responsible || '';
 
@@ -407,7 +450,11 @@ function addMobileTaskCard(task) {
     check.addEventListener('change', debouncedSave);
   });
 
-  card.querySelector('.task-text').addEventListener('input', debouncedSave);
+  autoResizeTextarea(taskTextarea);
+  taskTextarea.addEventListener('input', () => {
+    autoResizeTextarea(taskTextarea);
+    debouncedSave();
+  });
   card.querySelector('.task-time').addEventListener('input', debouncedSave);
   card.querySelector('.task-responsible').addEventListener('input', debouncedSave);
 
@@ -443,25 +490,29 @@ function moveCard(card, direction) {
   const idx = cards.indexOf(card);
   const sibling = direction < 0 ? card.previousElementSibling : card.nextElementSibling;
   if (!sibling) return;
+
   if (direction < 0) {
     els.mobileTasksBody.insertBefore(card, sibling);
   } else {
     els.mobileTasksBody.insertBefore(sibling, card);
   }
+
   const rows = [...els.tasksBody.querySelectorAll('tr')];
   const row = rows[idx];
   if (!row) return;
+
   const siblingRow = direction < 0 ? row.previousElementSibling : row.nextElementSibling;
   if (!siblingRow) return;
+
   if (direction < 0) {
     els.tasksBody.insertBefore(row, siblingRow);
   } else {
     els.tasksBody.insertBefore(siblingRow, row);
   }
+
   debouncedSave();
 }
 
-/* ── RECOLECCIÓN DE DATOS ───────────────────────────── */
 function isMobile() {
   return window.innerWidth <= 768;
 }
@@ -481,6 +532,7 @@ function collectTasks() {
       };
     }).filter(task => task.text);
   }
+
   return [...els.tasksBody.querySelectorAll('tr')].map(row => {
     const days = {};
     row.querySelectorAll('.day-check').forEach(check => {
@@ -498,6 +550,7 @@ function collectTasks() {
 function autosaveCurrent() {
   const service = getCurrentService();
   if (!service) return;
+
   service.name = els.serviceName.value.trim() || 'Nuevo servicio';
   service.address = els.serviceAddress.value.trim();
   service.workers = els.serviceWorkers.value.trim();
@@ -506,10 +559,10 @@ function autosaveCurrent() {
   service.critical = els.serviceCritical.value.trim();
   service.notes = els.serviceNotes.value.trim();
   service.tasks = collectTasks();
+
   renderServiceList();
 }
 
-// Guarda con debounce (1.2s sin escribir → guarda en Supabase)
 function debouncedSave() {
   if (isSavingFromRemote) return;
   autosaveCurrent();
@@ -524,6 +577,7 @@ function debouncedSave() {
 function renderServiceList() {
   const q = els.serviceSearch.value.trim().toLowerCase();
   els.serviceList.innerHTML = '';
+
   services
     .filter(service => {
       const haystack = `${service.name} ${service.address} ${service.supervisor}`.toLowerCase();
@@ -536,10 +590,12 @@ function renderServiceList() {
         <div class="service-card-title">${escapeHtml(service.name || 'Sin nombre')}</div>
         <div class="service-card-sub">${escapeHtml(service.address || 'Sin dirección')}</div>
       `;
+
       btn.addEventListener('click', () => {
         openService(service.id);
         closeSidebar();
       });
+
       btn.addEventListener('contextmenu', async event => {
         event.preventDefault();
         if (confirm(`¿Eliminar "${service.name}"?`)) {
@@ -555,11 +611,11 @@ function renderServiceList() {
           openService(currentId);
         }
       });
+
       els.serviceList.appendChild(btn);
     });
 }
 
-/* ── EXPORT / IMPORT ─────────────────────────────────── */
 function exportJson() {
   autosaveCurrent();
   const blob = new Blob([JSON.stringify(services, null, 2)], { type: 'application/json' });
@@ -574,6 +630,7 @@ function exportJson() {
 async function importJson(event) {
   const file = event.target.files[0];
   if (!file) return;
+
   const reader = new FileReader();
   reader.onload = async e => {
     try {
@@ -588,6 +645,7 @@ async function importJson(event) {
       alert('No se pudo importar el archivo JSON.');
     }
   };
+
   reader.readAsText(file);
   event.target.value = '';
 }
@@ -604,21 +662,21 @@ function exportXlsx() {
 
   services.forEach(service => {
     const sheetName = (service.name || 'Servicio')
-      .replace(/[:\\\/\?\*\[\]]/g, '')
+      .replace(/[:\\/?*\[\]]/g, '')
       .substring(0, 31);
 
     const DAY_LABELS = ['L', 'MA', 'MI', 'J', 'V', 'S', 'D'];
-    const DAY_KEYS   = ['l', 'ma', 'mi', 'j', 'v', 's', 'd'];
+    const DAY_KEYS = ['l', 'ma', 'mi', 'j', 'v', 's', 'd'];
 
     const headerRows = [
       ['CRONOGRAMA DE ACTIVIDADES – MAESTRANZA'],
       [],
-      ['Servicio',        service.name      || ''],
-      ['Dirección',       service.address   || ''],
-      ['Operarios',       service.workers   || ''],
-      ['Horario',         service.schedule  || ''],
-      ['Supervisor',      service.supervisor|| ''],
-      ['Sectores críticos', service.critical|| ''],
+      ['Servicio', service.name || ''],
+      ['Dirección', service.address || ''],
+      ['Operarios', service.workers || ''],
+      ['Horario', service.schedule || ''],
+      ['Supervisor', service.supervisor || ''],
+      ['Sectores críticos', service.critical || ''],
       [],
     ];
 
@@ -626,7 +684,7 @@ function exportXlsx() {
     const taskRows = (service.tasks || []).map(task => [
       task.text || '',
       ...DAY_KEYS.map(k => task.days?.[k] ? 'X' : ''),
-      task.time        || '',
+      task.time || '',
       task.responsible || '',
     ]);
 

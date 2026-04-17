@@ -15,14 +15,12 @@ body{
   background:var(--bg);
 }
 
-/* ── LAYOUT ─────────────────────────────────────────── */
 .app-shell{
   display:grid;
   grid-template-columns:320px 1fr;
   min-height:100vh;
 }
 
-/* ── SIDEBAR ─────────────────────────────────────────── */
 .sidebar{
   background:#162331;
   color:#fff;
@@ -92,7 +90,6 @@ body{
 .small{font-size:12px}
 .muted{color:#bfd1e4}
 
-/* ── ESTADO DE CONEXIÓN ──────────────────────────────── */
 .status-block{
   display:flex;
   align-items:center;
@@ -115,7 +112,6 @@ body{
   color:#bfd1e4;
 }
 
-/* ── MAIN ─────────────────────────────────────────────── */
 .main{padding:24px;min-width:0}
 .topbar{
   display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px;
@@ -137,7 +133,6 @@ body{
 
 .sidebar-toggle{display:none}
 
-/* ── PAPER ───────────────────────────────────────────── */
 .paper{
   background:#fff;
   width:100%;
@@ -175,7 +170,6 @@ body{
   width:100%;border:none;outline:none;font-size:14px;background:transparent;
 }
 
-/* ── TABLA DESKTOP ───────────────────────────────────── */
 .schedule-table{
   width:100%;border-collapse:collapse;table-layout:fixed;font-size:14px;
 }
@@ -195,7 +189,24 @@ body{
 }
 .task-input-cell{padding:0}
 .task-text{
-  width:100%;border:none;outline:none;resize:vertical;min-height:52px;padding:10px;font:inherit;
+  width:100%;
+  border:none;
+  outline:none;
+  resize:vertical;
+  min-height:52px;
+  padding:10px;
+  font:inherit;
+  line-height:1.35;
+}
+.task-text-print{
+  display:none;
+  width:100%;
+  min-height:52px;
+  padding:10px;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  line-height:1.35;
 }
 .day-check{transform:scale(1.1)}
 .row-actions{width:116px}
@@ -211,7 +222,6 @@ body{
 .mobile-tasks{display:none}
 .desktop-table{display:table}
 
-/* ── TARJETAS MOBILE ──────────────────────────────────── */
 .mobile-task-card{
   border:1px solid var(--line);
   border-radius:12px;
@@ -287,7 +297,6 @@ body{
   accent-color:var(--blue);
 }
 
-/* ── NOTAS ───────────────────────────────────────────── */
 .notes-block{margin-top:16px}
 .notes-title{
   font-weight:700;color:var(--blue);margin-bottom:6px;
@@ -297,7 +306,6 @@ body{
   font-size:16px;
 }
 
-/* ── RESPONSIVE: tablet ──────────────────────────────── */
 @media (max-width: 1180px){
   .app-shell{grid-template-columns:1fr}
   .sidebar{padding-bottom:10px}
@@ -308,7 +316,6 @@ body{
   .meta-item:nth-child(2n){border-right:none}
 }
 
-/* ── RESPONSIVE: mobile ───────────────────────────────── */
 @media (max-width: 768px){
   .app-shell{display:block}
 
@@ -365,7 +372,6 @@ body{
   .notes-block textarea{font-size:16px}
 }
 
-/* ── PRINT ───────────────────────────────────────────── */
 @media print{
   @page{size:A4 landscape;margin:10mm}
   body{background:#fff}
@@ -379,7 +385,15 @@ body{
   .desktop-table{display:table !important}
   .mobile-tasks{display:none !important}
   .schedule-table{font-size:11px}
-  .task-text{resize:none;overflow:hidden;min-height:auto;padding:6px}
+  .schedule-table tr,
+  .schedule-table td,
+  .schedule-table th{
+    break-inside:avoid;
+    page-break-inside:avoid;
+  }
+  .task-input-cell{height:auto !important}
+  .task-text{display:none !important}
+  .task-text-print{display:block !important;min-height:auto;padding:6px}
   .notes-block textarea{border:none;padding:0;min-height:60px}
   input[type="checkbox"]{
     appearance:none;-webkit-appearance:none;
