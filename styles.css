@@ -14,6 +14,7 @@ body{
   color:var(--text);
   background:var(--bg);
 }
+body.modal-open{overflow:hidden}
 
 .app-shell{
   display:grid;
@@ -81,12 +82,33 @@ body{
 .service-list{
   display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 320px);overflow:auto;
 }
+.service-card-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 42px;
+  gap:6px;
+  align-items:stretch;
+}
 .service-card{
   width:100%;text-align:left;border:1px solid #31465b;background:#0f1a26;color:#fff;padding:12px;border-radius:12px;cursor:pointer;
 }
 .service-card.active{border-color:#7db0e3;background:#15304b}
 .service-card-title{font-weight:700;font-size:14px}
 .service-card-sub{font-size:12px;color:#bfd1e4;margin-top:4px}
+.service-delete-btn{
+  border:1px solid #6e3940;
+  background:#351a1f;
+  color:#ffb8c0;
+  border-radius:12px;
+  cursor:pointer;
+  font-size:17px;
+  font-weight:700;
+}
+.service-delete-btn:hover,
+.service-delete-btn:focus-visible{
+  background:#5a222b;
+  color:#fff;
+  outline:none;
+}
 .small{font-size:12px}
 .muted{color:#bfd1e4}
 
@@ -128,6 +150,9 @@ body{
 .btn-secondary{background:#dfe7ef;color:#203244}
 .btn-dark{background:#1a1f27;color:#fff}
 .btn-green{background:#1e7e3e;color:#fff}
+.btn-danger{background:#b4232f;color:#fff}
+.btn-danger:hover:not(:disabled){background:#921c26}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-full{width:100%}
 .file-label{display:inline-flex;align-items:center}
 
@@ -306,6 +331,99 @@ body{
   font-size:16px;
 }
 
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:500;
+  display:grid;
+  place-items:center;
+  padding:20px;
+  background:rgba(7,14,22,.72);
+}
+.modal-backdrop[hidden]{display:none}
+.modal-dialog{
+  width:min(100%,520px);
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 24px 70px rgba(0,0,0,.35);
+  padding:22px;
+}
+.modal-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+.modal-kicker{
+  color:#b4232f;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.modal-header h3{margin:4px 0 0;font-size:22px}
+.modal-close{
+  border:none;
+  background:#edf1f5;
+  color:#263443;
+  border-radius:9px;
+  width:36px;
+  height:36px;
+  cursor:pointer;
+  font-size:16px;
+}
+.modal-warning{
+  margin:18px 0;
+  padding:12px 14px;
+  border-left:4px solid #b4232f;
+  background:#fff0f1;
+  color:#4e2025;
+  line-height:1.45;
+}
+.confirmation-label{
+  display:block;
+  font-size:13px;
+  font-weight:700;
+  margin-bottom:7px;
+}
+.confirmation-phrase{
+  padding:10px 12px;
+  border-radius:9px;
+  background:#f1f4f7;
+  border:1px solid #d4dce4;
+  font-family:Consolas, Monaco, monospace;
+  font-size:14px;
+  font-weight:700;
+  overflow-wrap:anywhere;
+  user-select:all;
+}
+.confirmation-input{
+  width:100%;
+  margin-top:10px;
+  padding:11px 12px;
+  border:1px solid #aeb9c4;
+  border-radius:9px;
+  font:inherit;
+}
+.confirmation-input:focus{
+  outline:2px solid #2f5d8a;
+  outline-offset:1px;
+}
+.modal-error{
+  margin-top:12px;
+  padding:10px 12px;
+  border-radius:9px;
+  background:#fff0f1;
+  color:#8d1721;
+  font-size:13px;
+}
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:20px;
+}
+
 @media (max-width: 1180px){
   .app-shell{grid-template-columns:1fr}
   .sidebar{padding-bottom:10px}
@@ -370,6 +488,12 @@ body{
   .mobile-tasks{display:block}
 
   .notes-block textarea{font-size:16px}
+}
+
+@media (max-width: 480px){
+  .modal-dialog{padding:18px}
+  .modal-actions{flex-direction:column-reverse}
+  .modal-actions .btn{width:100%}
 }
 
 @media print{

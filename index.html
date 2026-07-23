@@ -66,6 +66,7 @@
             <input id="importJsonInput" type="file" accept=".json" hidden />
           </label>
           <button id="printBtn" class="btn btn-dark">Imprimir / PDF</button>
+          <button id="deleteServiceBtn" class="btn btn-danger">Eliminar cronograma</button>
         </div>
       </div>
 
@@ -118,6 +119,42 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div id="deleteModal" class="modal-backdrop no-print" hidden>
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+      <div class="modal-header">
+        <div>
+          <div class="modal-kicker">Acción irreversible</div>
+          <h3 id="deleteModalTitle">Eliminar cronograma</h3>
+        </div>
+        <button id="deleteModalClose" class="modal-close" type="button" aria-label="Cerrar">✕</button>
+      </div>
+
+      <p class="modal-warning">
+        Se eliminará permanentemente <strong id="deleteServiceName"></strong> de Supabase y dejará de estar disponible para todos los usuarios.
+      </p>
+
+      <label class="confirmation-label" for="deleteConfirmationInput">
+        Para confirmar, escribí exactamente:
+      </label>
+      <div id="deleteConfirmationPhrase" class="confirmation-phrase"></div>
+      <input
+        id="deleteConfirmationInput"
+        class="confirmation-input"
+        type="text"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="Escribí la frase de confirmación"
+      />
+
+      <div id="deleteModalError" class="modal-error" hidden></div>
+
+      <div class="modal-actions">
+        <button id="deleteModalCancel" class="btn btn-secondary" type="button">Cancelar</button>
+        <button id="deleteModalConfirm" class="btn btn-danger" type="button" disabled>Eliminar definitivamente</button>
+      </div>
+    </div>
   </div>
 
   <template id="taskRowTemplate">

@@ -26,6 +26,8 @@ let currentId = null;
 let saveTimeout = null;
 let realtimeChannel = null;
 let isSavingFromRemote = false;
+let pendingDeleteId = null;
+let pendingDeletePhrase = '';
 
 const els = {
   serviceName: document.getElementById('serviceName'),
@@ -47,6 +49,15 @@ const els = {
   exportXlsxBtn: document.getElementById('exportXlsxBtn'),
   exportJsonBtn: document.getElementById('exportJsonBtn'),
   importJsonInput: document.getElementById('importJsonInput'),
+  deleteServiceBtn: document.getElementById('deleteServiceBtn'),
+  deleteModal: document.getElementById('deleteModal'),
+  deleteModalClose: document.getElementById('deleteModalClose'),
+  deleteModalCancel: document.getElementById('deleteModalCancel'),
+  deleteModalConfirm: document.getElementById('deleteModalConfirm'),
+  deleteServiceName: document.getElementById('deleteServiceName'),
+  deleteConfirmationPhrase: document.getElementById('deleteConfirmationPhrase'),
+  deleteConfirmationInput: document.getElementById('deleteConfirmationInput'),
+  deleteModalError: document.getElementById('deleteModalError'),
   taskRowTemplate: document.getElementById('taskRowTemplate'),
   mobileTaskCardTemplate: document.getElementById('mobileTaskCardTemplate'),
   sidebar: document.getElementById('sidebar'),
@@ -135,8 +146,15 @@ async function saveToSupabase(service) {
 }
 
 async function deleteFromSupabase(id) {
+  setStatus('saving', 'Eliminando...');
   const { error } = await db.from('services').delete().eq('id', id);
-  if (error) console.error('Error eliminando:', error);
+  if (error) {
+    setStatus('error', 'Error al eliminar');
+    console.error('Error eliminando:', error);
+    return { success: false, error };
+  }
+
+  return { success: true };
 }
 
 function startRealtime() {
@@ -252,6 +270,23 @@ function bindEvents() {
   els.exportXlsxBtn.addEventListener('click', exportXlsx);
   els.exportJsonBtn.addEventListener('click', exportJson);
   els.importJsonInput.addEventListener('change', importJson);
+  els.deleteServiceBtn.addEventListener('click', () => openDeleteModal(currentId));
+  els.deleteModalClose.addEventListener('click', closeDeleteModal);
+  els.deleteModalCancel.addEventListener('click', closeDeleteModal);
+  els.deleteModalConfirm.addEventListener('click', confirmDeleteService);
+  els.deleteConfirmationInput.addEventListener('input', updateDeleteConfirmationState);
+  els.deleteConfirmationInput.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !els.deleteModalConfirm.disabled) {
+      event.preventDefault();
+      confirmDeleteService();
+    }
+  });
+  els.deleteModal.addEventListener('click', event => {
+    if (event.target === els.deleteModal) closeDeleteModal();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !els.deleteModal.hidden) closeDeleteModal();
+  });
   els.serviceSearch.addEventListener('input', renderServiceList);
 
   ['serviceName','serviceAddress','serviceWorkers','serviceSchedule','serviceSupervisor','serviceCritical','serviceNotes'].forEach(id => {
@@ -329,6 +364,103 @@ function openSidebar() {
 function closeSidebar() {
   els.sidebar.classList.remove('open');
   els.sidebarOverlay.classList.remove('open');
+}
+
+function buildDeletePhrase(service) {
+  return `ELIMINAR ${service.name || 'Nuevo servicio'}`;
+}
+
+function openDeleteModal(id) {
+  const service = services.find(item => item.id === id);
+  if (!service) return;
+
+  pendingDeleteId = service.id;
+  pendingDeletePhrase = buildDeletePhrase(service);
+
+  els.deleteServiceName.textContent = `“${service.name || 'Nuevo servicio'}”`;
+  els.deleteConfirmationPhrase.textContent = pendingDeletePhrase;
+  els.deleteConfirmationInput.value = '';
+  els.deleteModalConfirm.disabled = true;
+  els.deleteModalConfirm.textContent = 'Eliminar definitivamente';
+  els.deleteModalError.hidden = true;
+  els.deleteModalError.textContent = '';
+  els.deleteModal.hidden = false;
+  document.body.classList.add('modal-open');
+
+  requestAnimationFrame(() => els.deleteConfirmationInput.focus());
+}
+
+function closeDeleteModal() {
+  if (els.deleteModalConfirm.disabled && els.deleteModalConfirm.textContent === 'Eliminando...') return;
+
+  els.deleteModal.hidden = true;
+  document.body.classList.remove('modal-open');
+  pendingDeleteId = null;
+  pendingDeletePhrase = '';
+  els.deleteConfirmationInput.value = '';
+  els.deleteModalError.hidden = true;
+  els.deleteModalError.textContent = '';
+}
+
+function updateDeleteConfirmationState() {
+  const matches = els.deleteConfirmationInput.value.trim() === pendingDeletePhrase;
+  els.deleteModalConfirm.disabled = !matches;
+}
+
+async function confirmDeleteService() {
+  const service = services.find(item => item.id === pendingDeleteId);
+  if (!service || els.deleteConfirmationInput.value.trim() !== pendingDeletePhrase) return;
+
+  const deletedIndex = services.findIndex(item => item.id === service.id);
+  const deletingCurrentService = service.id === currentId;
+
+  if (deletingCurrentService) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  els.deleteModalConfirm.disabled = true;
+  els.deleteModalCancel.disabled = true;
+  els.deleteModalClose.disabled = true;
+  els.deleteConfirmationInput.disabled = true;
+  els.deleteModalConfirm.textContent = 'Eliminando...';
+  els.deleteModalError.hidden = true;
+
+  const result = await deleteFromSupabase(service.id);
+
+  if (!result.success) {
+    els.deleteModalError.textContent = 'No se pudo eliminar el cronograma. Verificá la conexión y la política de eliminación de Supabase.';
+    els.deleteModalError.hidden = false;
+    els.deleteModalCancel.disabled = false;
+    els.deleteModalClose.disabled = false;
+    els.deleteConfirmationInput.disabled = false;
+    els.deleteModalConfirm.textContent = 'Eliminar definitivamente';
+    updateDeleteConfirmationState();
+    return;
+  }
+
+  services = services.filter(item => item.id !== service.id);
+
+  if (!services.length) {
+    const first = createBlankService();
+    await saveToSupabase(first);
+    services = [first];
+  }
+
+  const nextIndex = Math.min(deletedIndex, services.length - 1);
+  currentId = services[nextIndex]?.id || services[0]?.id || null;
+
+  els.deleteModalCancel.disabled = false;
+  els.deleteModalClose.disabled = false;
+  els.deleteConfirmationInput.disabled = false;
+  els.deleteModalConfirm.textContent = 'Eliminar definitivamente';
+  els.deleteModal.hidden = true;
+  document.body.classList.remove('modal-open');
+  pendingDeleteId = null;
+  pendingDeletePhrase = '';
+
+  renderServiceList();
+  if (currentId) openService(currentId);
+  setStatus('saved', 'Cronograma eliminado');
 }
 
 function createBlankService() {
@@ -577,6 +709,7 @@ function debouncedSave() {
 function renderServiceList() {
   const q = els.serviceSearch.value.trim().toLowerCase();
   els.serviceList.innerHTML = '';
+  els.deleteServiceBtn.disabled = !currentId;
 
   services
     .filter(service => {
@@ -584,8 +717,12 @@ function renderServiceList() {
       return haystack.includes(q);
     })
     .forEach(service => {
+      const row = document.createElement('div');
+      row.className = 'service-card-row';
+
       const btn = document.createElement('button');
       btn.className = 'service-card' + (service.id === currentId ? ' active' : '');
+      btn.type = 'button';
       btn.innerHTML = `
         <div class="service-card-title">${escapeHtml(service.name || 'Sin nombre')}</div>
         <div class="service-card-sub">${escapeHtml(service.address || 'Sin dirección')}</div>
@@ -596,23 +733,25 @@ function renderServiceList() {
         closeSidebar();
       });
 
-      btn.addEventListener('contextmenu', async event => {
+      btn.addEventListener('contextmenu', event => {
         event.preventDefault();
-        if (confirm(`¿Eliminar "${service.name}"?`)) {
-          await deleteFromSupabase(service.id);
-          services = services.filter(s => s.id !== service.id);
-          if (!services.length) {
-            const first = createBlankService();
-            await saveToSupabase(first);
-            services = [first];
-          }
-          currentId = services[0].id;
-          renderServiceList();
-          openService(currentId);
-        }
+        openDeleteModal(service.id);
       });
 
-      els.serviceList.appendChild(btn);
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'service-delete-btn';
+      deleteBtn.title = `Eliminar ${service.name || 'cronograma'}`;
+      deleteBtn.setAttribute('aria-label', `Eliminar ${service.name || 'cronograma'}`);
+      deleteBtn.textContent = '×';
+      deleteBtn.addEventListener('click', event => {
+        event.stopPropagation();
+        openDeleteModal(service.id);
+      });
+
+      row.appendChild(btn);
+      row.appendChild(deleteBtn);
+      els.serviceList.appendChild(row);
     });
 }
 
